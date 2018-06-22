@@ -60,6 +60,10 @@ def home():
 def viz_1():
     return render_template("visualization_1.html")
 
+@app.route("/visualization_2")
+def viz_2():
+    return render_template("visualization_2.html")
+
 @app.route("/statelist")
 def statelist():
     listofstates=[]
@@ -136,7 +140,7 @@ def pceg(state):
         datadct["datasets"].append({"label":str(label[x]),"data":alldata[x],"backgroundColor":backgroundColor[x],"hoverBorderColor":"gray","hoverBorderWidth":4})
     
     #return(jsonify(datadct))
-    return render_template("graph.html",datadct=datadct)
+    return render_template("graph.html",datadct=datadct,state=state)
 
 
 
