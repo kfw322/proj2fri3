@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Breakdown of Expenditures</title>
+    <style type="text/css">
+        .my-chart-container {
+          width: 75%;
+          height: 75%;
+          align-self: center;
+        }
+      </style>
+</head>
+<body>
+        
+            
+            <div class="my-chart-container">
+              <h2><center>Breakdown of Expenditures</center></h2>
+              <canvas id="my-chart-3" width="600" height="300"></canvas>
+            </div>
+
+    <script type="text/javascript" src="https://npmcdn.com/chart.js@latest/dist/Chart.bundle.min.js"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='barsetup.js') }}"></script>
+    <script type="text/javascript">
+var datadct = JSON.parse('{{ datadct|tojson|safe }}');
+const chart = new Chart(document.getElementById("my-chart-3"), {
+  type: "bar",
+  data: datadct,
+  options: {
+    layout: {
+      padding: {
+        left: 50,
+        right: 50,
+        top: 50,
+        bottom: 50
+      }
+    },
+    tooltips: {
+      backgroundColor: "rgba(27,27,27,0.4)",
+      cornerRadius: 12,
+      bodyFontSize: 14,
+      borderWidth: 5,
+      borderColor: "rgba(27,27,27,0.7)"
+    },
+    scales: {
+      xAxes: [{
+        barPercentage: .99,
+        categoryPercentage: .99
+        
+      }]
+    },
+    legend: {
+      labels : {      
+        boxWidth: 10,
+        fontSize : 10
+      },
+      position: 'bottom'
+    },
+    plugins: {
+      stacked100: { enable: true }
+    }
+  }
+});
+    </script>
+</body>
+</html>
