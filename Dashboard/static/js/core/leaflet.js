@@ -1,5 +1,6 @@
 var myPlot = document.getElementById("myDiv");
-Plotly.d3.csv('https://raw.githubusercontent.com/Sangjin135/Sangjin135.github.io/Lily/data.csv', function(err, rows){
+// Plotly.d3.csv('https://raw.githubusercontent.com/Sangjin135/Sangjin135.github.io/Lily/data.csv', function(err, rows){
+Plotly.d3.csv('https://raw.githubusercontent.com/kfw322/uploaddump/master/pcepopdata.csv', function(err, rows){
 function unpack(rows, key) {
 return rows.map(function(row) { return row[key]; });
 }
@@ -7,10 +8,10 @@ var data = [{
     type: 'choropleth',
     locationmode: 'USA-states',
     locations: unpack(rows, 'Code'),
-    z: unpack(rows, '2016PCE'),
+    z: unpack(rows, 'PCEPERCAP'),
     text: unpack(rows, 'GeoName'),
-    zmin: -10000,
-    zmax: 1700000,
+    zmin: 30000,
+    zmax: 55000,
     colorscale: 'Hot',
     hoverinfo: "location+z+text",
   colorbar: {

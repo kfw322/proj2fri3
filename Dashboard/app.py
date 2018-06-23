@@ -13,7 +13,6 @@ from flask import Flask, jsonify, render_template, request, redirect
 import json
 from datetime import datetime
 from dateutil.parser import parse
-import win32api
 
 engine = create_engine("sqlite:///data.sqlite")
 conn = engine.connect()
@@ -64,6 +63,10 @@ def viz_1():
 def viz_2():
     return render_template("visualization_2.html")
 
+@app.route("/visualization_3")
+def viz_3():
+    return render_template("visualization_3.html")
+
 @app.route("/statelist")
 def statelist():
     listofstates=[]
@@ -111,10 +114,29 @@ def pced(state):
 
 @app.route("/pcegraph/<state>")
 def pceg(state):
+
+    rawpopdata = pd.read_csv("https://raw.githubusercontent.com/aaronpenne/data_visualization/master/population/data/USA_Population_of_States_US_Census_Intercensal_Tables_1917-2017.csv")
+    rawpopdf = rawpopdata.rename(columns={'': '','Year': 'Year','AK': 'Alaska','AL': 'Alabama','AR': 'Arkansas','AZ': 'Arizona','CA': 'California','CO': 'Colorado','CT': 'Connecticut','DC': 'District of Columbia','DE': 'Delaware','FL': 'Florida','GA': 'Georgia','HI': 'Hawaii','IA': 'Iowa','ID': 'Idaho','IL': 'Illinois','IN': 'Indiana','KS': 'Kansas','KY': 'Kentucky','LA': 'Louisiana','MA': 'Massachusetts','MD': 'Maryland','ME': 'Maine','MI': 'Michigan','MN': 'Minnesota','MO': 'Missouri','MS': 'Mississippi','MT': 'Montana','NC': 'North Carolina','ND': 'North Dakota','NE': 'Nebraska','NH': 'New Hampshire','NJ': 'New Jersey','NM': 'New Mexico','NV': 'Nevada','NY': 'New York','OH': 'Ohio','OK': 'Oklahoma','OR': 'Oregon','PA': 'Pennsylvania','RI': 'Rhode Island','SC': 'South Carolina','SD': 'South Dakota','TN': 'Tennessee','TX': 'Texas','UT': 'Utah','VA': 'Virginia','VT': 'Vermont','WA': 'Washington','WI': 'Wisconsin','WV': 'West Virginia','WY': 'Wyoming','US':'United States'})
+    lessrawpopdf = rawpopdf[(rawpopdf.Year >= 1997) & (rawpopdf.Year <= 2016)]
+    lessrawpopdf = lessrawpopdf.set_index("Year").T.reset_index()
+    lessrawpopdf.columns.values[0] = "State"
+    statepopres = lessrawpopdf[(lessrawpopdf.State==state)].set_index("State")
+    sp = statepopres.T.reset_index()
+    sp.columns=["Year","Pop"]
+    sp_y = sp["Year"].apply(str)
+    sp_p = sp["Pop"]
+    population_dict = dict(zip(sp_y,sp_p))
+    dpidict = {}
+    unemployment_dict = { "1997" : .953,"1998" : .956,"1999" : .960,"2000" : .961,"2001" : .943,"2002" : .940,"2003" : .953,"2004" : .946,"2005" : .951,"2006" : .956,"2007" : .950,"2008" : .927,"2009" : .901,"2010" : .907,"2011" : .915,"2012" : .921,"2013" : .933,"2014" : .944,"2015" : .950,"2016" : .953 }
+    for row in conn.engine.execute(r'select TimePeriod, DataValue from DPI where GeoName like "' + state + r'%"'):
+        if 1996 < int(row.TimePeriod) < 2017:
+            for rrr in conn.engine.execute(r'select "' + str(row.TimePeriod) + r'" from PCE where GeoName= "' + state + r'" and Line = "1"'):
+                dpidict[row.TimePeriod] = (((float(row.DataValue) / 1000000) * float(unemployment_dict[str(row.TimePeriod)] * population_dict[row.TimePeriod])) - float(rrr[0]))
     label = []
     alldata = []
+    dpidata = []
     years = []
-    backgroundColor = ["rgba(114,147,203, 0.8)","rgba(225,151,76, 0.8)","rgba(132,186,91, 0.8)","rgba(211,94,96, 0.8)",
+    backgroundColor = ["rgba(0,127,0, 0.8)","rgba(114,147,203, 0.8)","rgba(225,151,76, 0.8)","rgba(132,186,91, 0.8)","rgba(211,94,96, 0.8)",
     "rgba(128,133,133, 0.8)","rgba(144,103,167, 0.8)","rgba(171,104,87, 0.8)","rgba(204,194,16, 0.8)",
     "rgba(114,147,203, 0.8)","rgba(225,151,76, 0.8)","rgba(132,186,91, 0.8)","rgba(211,94,96, 0.8)",
     "rgba(128,133,133, 0.8)","rgba(144,103,167, 0.8)","rgba(171,104,87, 0.8)","rgba(204,194,16, 0.8)"]
@@ -124,28 +146,23 @@ def pceg(state):
         partdata = []
         for row in conn.engine.execute(str(r'select "Description" from PCE WHERE GeoName= "' + state + r'" AND Line = "' + str(line) + r'"')):
             label.append(str(row[0]))
+        dpidata = []
         for year in range (1997,2017,1):
-
+            dpidata.append(int(dpidict[str(year)]))
             sqlquery = str(r'select "' + str(year) + r'" from PCE WHERE GeoName= "' + state + r'" AND Line = "' + str(line) + r'"')
             for row in conn.engine.execute(sqlquery):
                 partdata.append(int(row[0]))
-        alldata.append(partdata)
-
+        alldata.append(partdata)     
+    alldata.insert(0,dpidata)
+    label.insert(0,(str("SAVINGS PERCENTAGE")))
     datadct = {}
     datadct["labels"] = labels
     datadct["datasets"] = []
     
     for x in range(len(alldata)):
-        
         datadct["datasets"].append({"label":str(label[x]),"data":alldata[x],"backgroundColor":backgroundColor[x],"hoverBorderColor":"gray","hoverBorderWidth":4})
-    
-    #return(jsonify(datadct))
     return render_template("graph.html",datadct=datadct,state=state)
 
-
-
-
-    
 @app.route("/countydata")
 def county():
     slist = {}
@@ -169,7 +186,8 @@ def incy(state,year):
 def inc(state):
     incdict = {}    
     for row in conn.engine.execute(r'select TimePeriod, DataValue from DPI where GeoName like "' + state + r'%"'):
-        incdict[row.TimePeriod] = row.DataValue
+        if 1997 <= int(row.TimePeriod) <= 2016:
+            incdict[row.TimePeriod] = row.DataValue
     return(jsonify(incdict))
         
 
